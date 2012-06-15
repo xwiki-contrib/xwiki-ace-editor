@@ -9,7 +9,7 @@
   <groupId>org.xwiki.contrib</groupId>
   <artifactId>xwiki-ace-editor</artifactId>
   <name>XWiki Ace Editor</name>
-  <version>1.0</version>
+  <version>1.1-SNAPSHOT</version>
   <packaging>xar</packaging>
   <description>Ace editor as a library for XWiki</description>
   <scm>

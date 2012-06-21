@@ -11,9 +11,9 @@
 <customClass></customClass>
 <contentAuthor>xwiki:XWiki.jvelo</contentAuthor>
 <creationDate>1339771211000</creationDate>
-<date>1339773338000</date>
-<contentUpdateDate>1339773338000</contentUpdateDate>
-<version>16.1</version>
+<date>1340302416000</date>
+<contentUpdateDate>1340302416000</contentUpdateDate>
+<version>24.1</version>
 <title>Ace Editor</title>
 <template></template>
 <defaultTemplate></defaultTemplate>
@@ -9990,7 +9990,292 @@ anNVVAUAA+BU0E91eAsAAQToAwAABGQAAABQSwECHgMUAAAACADUScdAS+j3yrASAgBOzw8AEAAY
 AAAAAAABAAAApIENfwYAd29ya2VyLXhxdWVyeS5qc1VUBQAD4FTQT3V4CwABBOgDAAAEZAAAAFBL
 BQYAAAAARwBHANgXAAAHkggAAAA=
 </content></attachment>
-<content>Integration of ajax.org ace editor in XWiki.
+<object>
+<class>
+<name>XWiki.JavaScriptExtension</name>
+<customClass></customClass>
+<customMapping></customMapping>
+<defaultViewSheet></defaultViewSheet>
+<defaultEditSheet></defaultEditSheet>
+<defaultWeb></defaultWeb>
+<nameField></nameField>
+<validationScript></validationScript>
+<cache>
+<cache>0</cache>
+<disabled>0</disabled>
+<displayType>select</displayType>
+<multiSelect>0</multiSelect>
+<name>cache</name>
+<number>5</number>
+<prettyName>Caching policy</prettyName>
+<relationalStorage>0</relationalStorage>
+<separator> </separator>
+<separators> ,|</separators>
+<size>1</size>
+<unmodifiable>0</unmodifiable>
+<values>long|short|default|forbid</values>
+<classType>com.xpn.xwiki.objects.classes.StaticListClass</classType>
+</cache>
+<code>
+<disabled>0</disabled>
+<name>code</name>
+<number>2</number>
+<prettyName>Code</prettyName>
+<rows>20</rows>
+<size>50</size>
+<unmodifiable>0</unmodifiable>
+<classType>com.xpn.xwiki.objects.classes.TextAreaClass</classType>
+</code>
+<name>
+<disabled>0</disabled>
+<name>name</name>
+<number>1</number>
+<prettyName>Name</prettyName>
+<size>30</size>
+<unmodifiable>0</unmodifiable>
+<classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+</name>
+<parse>
+<disabled>0</disabled>
+<displayFormType>select</displayFormType>
+<displayType>yesno</displayType>
+<name>parse</name>
+<number>4</number>
+<prettyName>Parse content</prettyName>
+<unmodifiable>0</unmodifiable>
+<classType>com.xpn.xwiki.objects.classes.BooleanClass</classType>
+</parse>
+<use>
+<cache>0</cache>
+<disabled>0</disabled>
+<displayType>select</displayType>
+<multiSelect>0</multiSelect>
+<name>use</name>
+<number>3</number>
+<prettyName>Use this extension</prettyName>
+<relationalStorage>0</relationalStorage>
+<separator> </separator>
+<separators> ,|</separators>
+<size>1</size>
+<unmodifiable>0</unmodifiable>
+<values>currentPage=Always on this page|onDemand=On demand|always=Always on this wiki</values>
+<classType>com.xpn.xwiki.objects.classes.StaticListClass</classType>
+</use>
+</class>
+<name>XWiki.Ace</name>
+<number>0</number>
+<className>XWiki.JavaScriptExtension</className>
+<guid>c49ed6aa-1724-4729-9189-ab64fd155ba1</guid>
+<property>
+<cache>long</cache>
+</property>
+<property>
+<code>(function(XWiki){
+
+  XWiki.AceEditor = Class.create({
+
+    /** Default options for Ace editors. This object is cloned and extended with constructor passed options for each instance. */
+    defaultOptions: {
+
+      /** */
+      wrapMode: true
+    },
+
+    /**
+     * Augments a textarea with a Ace editor.
+     *
+     * @param {nsIDomElement} textArea the text area to augment with an Ace editor.
+     * @param {Object} options the options for this instance of an Ace editor.
+     */
+    initialize: function(textArea, options) {
+      this.textArea = textArea;
+      this.options = Object.extend(Object.clone(this.defaultOptions), options);
+
+      // Save the original size of the textArea for future use.
+      this.originalDimensions = this.textArea.getDimensions();
+
+      // Create and inject the ace editor container
+      this.createHook();
+
+      // Initialize the editor and set some options.
+      this.editor = ace.edit(this.hook);
+      if (this.options.wrapMode) {
+        this.editor.getSession().setUseWrapMode(true);
+      }
+
+      if (this.options.mode) {
+        this.mode = require("ace/mode/" + this.options.mode).Mode;
+        this.editor.session.setMode(new this.mode());
+      }
+
+      this.editor.getSession().on("change", function(){
+        this.textArea.innerHTML = this.editor.getSession().getValue();
+      }.bind(this));
+
+      // Respond to some events: fullscreen enter/exit, window resize
+      document.observe("xwiki:fullscreen:entered", this.onEnterFullScreen.bind(this));
+      document.observe("xwiki:fullscreen:exited", this.onExitFullScreen.bind(this));
+      window.onresize = this.resize.bind(this);
+    },
+
+    /** Creates and inject a container and an inner div for holding the Ace editor. */
+    createHook: function(){
+      this.hook = new Element("div", {
+        style: "position:relative;width:#{width}px;height:#{height}px".interpolate({
+          width: this.textArea.getWidth(),
+          height: this.textArea.getHeight()
+        })
+      }).update(this.textArea.innerHTML);
+      this.container = new Element("div", { id: "ace-content-container" }).update(this.hook);
+
+      this.textArea.insert({before: this.container});
+      this.textArea.addClassName("hidden");
+      // In wiki edit mode, hide the textarea toolbar buttons, as they will not work for the ACE editor
+      if (this.hook.up().previous(".leftmenu2")) {
+        this.hook.up().previous(".leftmenu2").select("a").invoke("setStyle", {'visibility' : 'hidden'});
+      }
+    },
+
+    /** When entering fullscreen, save a "in fullscreen" state and resize the editor */
+    onEnterFullScreen: function() {
+      this.isInFullScreen = true;
+      this.resize();
+    },
+
+    /** When exiting fullscreen, reset the fullscreen state and reset the original editor size */
+    onExitFullScreen: function() {
+      this.isInFullScreen = false;
+      this.resetSize();
+    },
+
+    /** 
+     * Resizes the Ace editor, for when entering fullscreen or when resizing in fullscreen.
+     * Relies on the "calc" operator to leave enough room for the bottom buttons.
+     * First resize the container of the editor, then trigger the Ace editor own resize.
+     */
+    resize: function(){
+      if (this.isInFullScreen) {
+        var bottomBarHeight = 70; // TODO need to find a way to get the real height.
+                                  // At this point in the flow, the bottombuttons bar it seems is not in the DOM...
+        this.container.setStyle({height: "-moz-calc(100% - " + bottomBarHeight + "px)"});
+        this.container.setStyle({height: "-webkit-calc(100% - " + bottomBarHeight + "px)"});
+        this.container.setStyle({height: "calc(100% - " + bottomBarHeight + "px)"});
+        this.hook.setStyle({
+          height: this.container.getHeight() + "px",
+          width: this.container.getWidth() + "px"
+        });
+        this.editor.resize();
+      }
+    },
+
+    /** Reset the editor back to its original size when exiting fullscreen. */
+    resetSize: function(){
+      this.container.setStyle({height:"auto"});
+      this.hook.setStyle({
+        width: this.originalDimensions.width + "px",
+        height: this.originalDimensions.height + "px"
+      });
+      this.editor.resize();
+    }
+
+  });
+
+})(XWiki || {})
+
+document.observe("dom:loaded", function(){
+  if (XWiki.contextaction == "edit") {
+    var configurationDocument = new XWiki.Document("AceConfiguration", "XWiki");
+    var ajax = new Ajax.Request(
+        configurationDocument.getRestURL("objects/#{wiki}:XWiki.AceConfigurationClass/0/properties".interpolate({wiki:XWiki.currentWiki})
+      ), {
+      method: "GET",
+      requestHeaders: {
+        "Accept" : "application/json"
+      },
+      onComplete: function(transport){
+
+        var data = transport.responseJSON,
+            isEnabledForWikiEditor = data.properties.find(function(prop){ return prop.name == 'enableForWikiEditor'}).value == 1,
+            isEnabledForSkinExtensions = data.properties.find(function(prop){ return prop.name == 'enableForSkinExtensions'}).value == 1;
+
+        if (isEnabledForWikiEditor &amp;&amp; XWiki.editor == 'wiki') {
+          loadAce(function(){
+            new XWiki.AceEditor($('content'));
+          });
+        }
+        else if (isEnabledForSkinExtensions &amp;&amp; XWiki.editor == 'object') {
+          var extensions = $$("[id^='XWiki.JavaScriptExtension_'][id$='_code']");
+          $$(".xobject.collapsable").invoke("removeClassName", "collapsed");
+          loadAce(function(mode){
+            extensions.each(function(extension){
+              extension._x_AceEditor = new XWiki.AceEditor(extension, {mode: mode});
+              extension.up(".xobject.collapsable").observe("click", function(event){
+                /* When the object editor is opened, collapsable elements get collapsed in JS, and all textareas are hidden.
+                   This result in a situation where we need to force resize the Ace editors the first time they are displayed.
+                   Unfortunately this is not enough, editors appear blank unless we do the little trick below of changing one of
+                   the dimension of the editor before resizing. */
+                (function() {
+                  var aceEditor = ($(event.element()).hasClassName("collapsable") ? $(event.element()) : $(event.element()).up(".xobject.collapsable"))
+                     .down("[id$='_code']")._x_AceEditor;
+                  if (!aceEditor.isHacked) {
+                    /** Please don't ask me to explain why this hack works */
+                    aceEditor.hook.setStyle({
+                      height: (aceEditor.hook.getHeight() + 1) + "px"
+                    });
+                    aceEditor.editor.resize();
+                    aceEditor.isHacked = true;
+                  }
+                }).defer();
+              });
+            });
+            $$(".xobject.collapsable").invoke("addClassName", "collapsed");
+          }, "javascript");
+        }
+      }
+    });
+  }
+
+  var loadAce = function(callback, mode){
+    var script = new Element("script", {
+      src: new XWiki.Document("Ace", "XWiki").getURL("download") + "/ace.zip/ace.js",
+      type: "text/javascript"
+    });
+
+    script.addEventListener('load', function (e) {
+      if (typeof mode != undefined &amp;&amp; mode != "") {
+        // load mode
+        var script = new Element("script", {
+          src: new XWiki.Document("Ace", "XWiki").getURL("download") + "/ace.zip/mode-" + mode + ".js",
+          type: "text/javascript"
+        });
+        script.addEventListener('load', function (e) {
+        callback &amp;&amp; callback.call(window, mode);
+        }, false);
+        $$("head")[0].insert({ bottom: script });
+      }
+      else {
+        callback &amp;&amp; callback.call();
+      }
+    }, false);
+
+    $$("head")[0].insert({ bottom: script });
+  }
+
+});</code>
+</property>
+<property>
+<name></name>
+</property>
+<property>
+<parse>0</parse>
+</property>
+<property>
+<use>always</use>
+</property>
+</object>
+<content>{{velocity}}
+#if($context.action != 'admin')
+Integration of ajax.org ace editor in XWiki.
 
 https://github.com/ajaxorg/ace-builds
 
@@ -10036,4 +10321,6 @@ document.observe("dom:loaded", function(){
 
   $$("head")[0].insert({ bottom: script });
 });
-{{/code}}</content></xwikidoc>
+{{/code}}
+#end
+{{/velocity}}</content></xwikidoc>

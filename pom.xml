@@ -11,7 +11,10 @@
   <name>XWiki Ace Editor</name>
   <version>1.1-SNAPSHOT</version>
   <packaging>xar</packaging>
-  <description>Ace editor as a library for XWiki</description>
+  <description>
+    Integration of the ACE editor in XWiki.
+    It can also serve as a convenience utility for applications that wants to embed ACE editors.
+  </description>
   <scm>
     <connection>scm:git:git://github.com/xwiki-contrib/xwiki-ace-editor.git</connection>
     <developerConnection>scm:git:git@github.com:xwiki-contrib/xwiki-ace-editor.git</developerConnection>

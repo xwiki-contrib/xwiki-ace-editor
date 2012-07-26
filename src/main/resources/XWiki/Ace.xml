@@ -10195,13 +10195,14 @@ document.observe("dom:loaded", function(){
       onComplete: function(transport){
 
         var data = transport.responseJSON,
-            isEnabledForWikiEditor = data.properties.find(function(prop){ return prop.name == 'enableForWikiEditor'}).value == 1,
-            isEnabledForSkinExtensions = data.properties.find(function(prop){ return prop.name == 'enableForSkinExtensions'}).value == 1;
+            isEnabledForWikiEditor = data.properties.find( function(prop){ return prop.name == 'enableForWikiEditor' }).value == 1,
+            isEnabledForSkinExtensions = data.properties.find(function(prop){ return prop.name == 'enableForSkinExtensions'}).value == 1,
+            isJustGroovy = $("content") &amp;&amp; $("content").value.match(/^\{\{groovy[\s\S]*\{\{\/groovy\}\}$/);
 
         if (isEnabledForWikiEditor &amp;&amp; XWiki.editor == 'wiki') {
-          loadAce(function(){
-            new XWiki.AceEditor($('content'));
-          });
+          loadAce(function(mode){
+            new XWiki.AceEditor($('content'), isJustGroovy ? {mode:"groovy"} : {});
+          }, isJustGroovy ? "groovy" : undefined);
         }
         else if (isEnabledForSkinExtensions &amp;&amp; XWiki.editor == 'object') {
           var extensions = $$("[id^='XWiki.JavaScriptExtension_'][id$='_code']");
@@ -10242,14 +10243,14 @@ document.observe("dom:loaded", function(){
     });
 
     script.addEventListener('load', function (e) {
-      if (typeof mode != undefined &amp;&amp; mode != "") {
+      if (typeof mode != "undefined" &amp;&amp; mode !== "") {
         // load mode
         var script = new Element("script", {
           src: new XWiki.Document("Ace", "XWiki").getURL("download") + "/ace.zip/mode-" + mode + ".js",
           type: "text/javascript"
         });
         script.addEventListener('load', function (e) {
-        callback &amp;&amp; callback.call(window, mode);
+          callback &amp;&amp; callback.call(window, mode);
         }, false);
         $$("head")[0].insert({ bottom: script });
       }
